@@ -1,0 +1,96 @@
+Build Tor in Windows with MinGW32
+=================================
+
+Build Environment Setup:
+------------------------
+
+ Install msysGit 1.9.0 from fullinstall package:
+  msysGit-fullinstall-1.9.0-preview20140217.exe from https://github.com/msysgit/msysgit/releases
+
+ Extract PortableGit-1.9.5-preview20150319 in the directory where msysGit was installed:
+  PortableGit-1.9.5-preview20150319.7z from https://github.com/msysgit/msysgit/releases
+
+ Copy libssp-0.dll from msysgit\mingw\lib\gcc\mingw32\bin to msysgit\bin
+
+Building OpenSSL:
+-----------------
+
+ Download OpenSSL source:
+  http://www.openssl.org/source/openssl-1.0.1t.tar.gz
+
+ Unpack it:
+  $ cd /c/build/
+  $ tar xvzf openssl-1.0.1t.tar.gz
+
+ (Note: There are may be many symlink errors because Windows doesn't support symlinks. You can ignore these errors.)
+
+ Now configure the source package:
+  $ cd openssl-1.0.1t/
+  $ ./Configure shared mingw
+
+ Edit '/c/build/openssl-1.0.1t/Makefile' and remove the "test:" and "tests:" sections that follow:
+
+  test:   tests
+
+  tests: rehash
+  	@(cd test && echo "testing..." && \
+  	$(CLEARENV) && $(MAKE) -e $(BUILDENV) TOP=.. TESTS='$(TESTS)' OPENSSL_DEBUG_MEMORY=on OPENSSL_CONF=../apps/openssl.cnf tests );
+  	OPENSSL_CONF=apps/openssl.cnf util/opensslwrap.sh version -a
+
+ Now copy files we do need:
+  $ mkdir -p ./include/openssl/
+  $ cd crypto/
+  $ find ./ -name "*.h" -exec cp {} ../include/openssl/ \;
+  $ cd ../ssl/
+  $ find ./ -name "*.h" -exec cp {} ../include/openssl/ \;
+  $ cd ..
+  $ cp *.h include/openssl/
+
+ Build it (this step can take up to 30 minutes to complete):
+  $ make && make install
+
+Building Zlib:
+--------------
+
+ Download the Zlib source:
+  http://www.zlib.net/zlib-1.2.8.tar.gz
+
+ Extract zlib:
+  $ cd /c/build/
+  $ tar xvzf zlib-1.2.8.tar.gz
+
+ Edit '/c/build/zlib-1.2.8/configure' and remove the section that follow:
+
+	echo "Please use win32/Makefile.gcc instead." | tee -a configure.log
+	leave 1
+
+ Build it (we'll need this because we want zlib.a):
+  $ cd zlib-1.2.8/
+  $ ./configure
+  $ make && make install
+
+Building libevent:
+------------------
+
+ Download, unpack, build and install libevent:
+  https://github.com/downloads/libevent/libevent/libevent-2.0.22-stable.tar.gz
+  https://github.com/downloads/libevent/libevent/libevent-2.0.22-stable.tar.gz.asc
+
+  $ cd /c/build/
+  $ tar xvzf libevent-2.0.22-stable.tar.gz
+  $ cd libevent-2.0.22-stable/
+  $ ./configure --enable-static --disable-shared
+  $ make && make install
+
+Building Tor:
+-------------
+
+ Download, unpack and build Tor:
+  https://www.torproject.org/dist/tor-0.2.5.12.tar.gz
+  https://www.torproject.org/dist/tor-0.2.5.12.tar.gz.asc
+  
+  $ cd /c/build/
+  $ tar xvzf tor-0.2.5.12.tar.gz
+  $ cd tor-0.2.5.12/
+  $ ./configure --enable-static-openssl --with-openssl-dir=/usr/local/ssl
+  $ make

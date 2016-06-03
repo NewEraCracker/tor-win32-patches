@@ -1,0 +1,142 @@
+Building Tor 0.2.5.x in Windows with Microsoft Visual Studio 2010
+=================================================================
+
+NOTE: This is not the preferred method for building Tor on windows: we use
+mingw for our packages.
+
+Requirements:
+-------------
+
+* Visual Studio 2010
+  http://go.microsoft.com/fwlink/?LinkId=323467
+* CMake 2.8.12.2
+  http://www.cmake.org/download/
+* Perl 5.16
+  http://www.activestate.com/activeperl/downloads
+* Latest stable OpenSSL tarball
+  https://www.openssl.org/source/
+* Latest stable zlib tarball
+  http://zlib.net/
+* Latest stable libevent tarball
+  https://github.com/libevent/libevent/releases
+
+Make sure you check signatures for all these packages.
+
+Possible problem with CMake 2.8 FindOpenSSL module:
+---------------------------------------------------
+
+Newer versions of OpenSSL have some whitespace changes in header files,
+this causes CMake to misbehave with errors such as:
+ CMake Error at .../share/cmake-2.8/Modules/FindOpenSSL.cmake:283
+
+To fix this, edit that same file (in CMake folder with an editor such as Notepad++) and find:
+ REGEX "^#define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
+
+Replace with:
+ REGEX "^#[\t ]*define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
+
+Save file and retry. ;)
+
+Steps:
+------
+
+Building OpenSSL from source as a shared library:
+
+ cd <openssl source dir>
+ perl Configure VC-WIN32
+ perl util\mkfiles.pl >MINFO
+ perl util\mk1mf.pl no-asm dll VC-WIN32 >32dll.mak
+ perl util\mkdef.pl 32 libeay > ms\libeay32.def
+ perl util\mkdef.pl 32 ssleay > ms\ssleay32.def
+ nmake -f 32dll.mak
+
+Making OpenSSL final package:
+
+ Create <openssl final package dir>, I'd recommend using a name like <openssl source dir>-vc10.
+
+ Copy the following directories and files to their respective locations
+  <openssl source dir>\inc32\openssl => <openssl final package dir>\include\openssl
+  <openssl source dir>\out32dll\libeay32.lib => <openssl final package dir>\lib\libeay32.lib
+  <openssl source dir>\out32dll\ssleay32.lib => <openssl final package dir>\lib\ssleay32.lib
+  <openssl source dir>\out32dll\libeay32.dll => <openssl final package dir>\bin\libeay32.dll
+  <openssl source dir>\out32dll\openssl.exe => <openssl final package dir>\bin\openssl.exe
+  <openssl source dir>\out32dll\ssleay32.dll => <openssl final package dir>\bin\ssleay32.dll
+
+Building Zlib from source:
+
+ cd <zlib source dir>
+ nmake -f win32\Makefile.msc
+
+Building libevent:
+
+ cd <libevent source dir>
+ mkdir build && cd build
+ SET OPENSSL_ROOT_DIR=<openssl final package dir>
+ cmake -G "NMake Makefiles" .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_C_FLAGS_RELWITHDEBINFO:STRING="/MD /Zi /O2 /Ob1 /D NDEBUG" -DZLIB_LIBRARY:FILEPATH="<zlib source dir>\zdll.lib" -DZLIB_INCLUDE_DIR:PATH="<zlib source dir>"
+ nmake event
+
+Building Tor:
+
+ Create a dir above tor source dir named build-alpha and two subdirs include and lib.
+
+ Your build tree should now be similar to this one:
+  * build-alpha
+    - include
+    - lib
+  * <libevent source dir>
+    - build
+    - cmake
+    - ...
+  * <openssl source dir>
+    - ...
+    - ms
+    - util
+    - ...
+  * <openssl final package dir>
+    - bin
+    - include
+    - lib
+  * <tor source dir>
+    - ...
+    - src
+    - ...
+  * <zlib source dir>
+    - ...
+    - win32
+    - ...
+
+ Copy the following dirs and files to the following locations:
+  <openssl final package dir>\include\openssl => build-alpha\include\openssl
+  <libevent source dir>\include => build-alpha\include
+  <libevent source dir>\WIN32-Code\nmake\event2 => build-alpha\include\event2
+  <zlib source dir>\z*.h => build-alpha\include\z*.h
+
+ Now copy the following files to the following locations:
+
+  <libevent source dir>\build\lib\event.lib => build-alpha\lib\event.lib
+  <openssl final package dir>\lib\libeay32.lib => build-alpha\lib\libeay32.lib
+  <openssl final package dir>\lib\ssleay32.lib => build-alpha\lib\ssleay32.lib
+  <zlib source dir>\zdll.lib => build-alpha\lib\zdll.lib
+
+ And we are now ready for the build process:
+
+  cd <tor source dir>
+  NMAKE /f "Makefile.nmake" all CFG="Release"
+
+Some final notes:
+
+ After build process is completed there should be a tor.exe in <tor source dir>\src\or
+
+ You will need to copy tor.exe to desired location.
+
+ The following DLLs are also required to be in the same location as tor.exe:
+  libeay32.dll
+  ssleay32.dll
+  zlib1.dll
+
+ To install this in another computer, you will need Visual C++ 2010 Redistributable Package installed or this two DLLs in application folder:
+  msvcp100.dll
+  msvcr100.dll
+
+ The above DLLs can be copied from redist directory from your Visual Studio distribution, normally:
+  C:\Program Files\Microsoft Visual Studio 10.0\VC\redist\x86\Microsoft.VC100.CRT
