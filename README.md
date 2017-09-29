@@ -10,5 +10,5 @@ Unofficial source for compatibility patches for Tor to enable Visual Studio buil
 * https://gitweb.torproject.org/tor.git/plain/LICENSE
 
 ## Copyright(s)
-* [Tor](https://www.torproject.org/) is Copyright 2007-2016 The Tor Project, Inc
+* [Tor](https://www.torproject.org/) is Copyright 2007-2017 The Tor Project, Inc
 * My modifications are Public Domain. I (NewEraCracker) waive my copyrights. Code must be free.
