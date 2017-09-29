@@ -13,3 +13,6 @@
 *.gz  binary
 *.sig binary
 *.tgz binary
+
+# Tor packages.
+archive/* linguist-vendored
