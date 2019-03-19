@@ -635,3 +635,19 @@
  
  #ifndef STDOUT_FILENO
  #define STDOUT_FILENO 1
+--- a/src/test/test.c
++++ b/src/test/test.c
+@@ -34,9 +34,12 @@
+  * Linux doesn't provide lround in math.h by default, but mac os does...
+  * It's best just to leave math.h out of the picture entirely.
+  */
+-//#include <math.h>
++#if _MSC_VER >= 1900 /* Visual Studio 2015 */
++#include <math.h>
++#else
+ long int lround(double x);
+ double fabs(double x);
++#endif
+ 
+ #include "or.h"
+ #include "backtrace.h"
